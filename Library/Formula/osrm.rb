@@ -14,6 +14,7 @@ class Osrm < Formula
     if `which g++-4.6`.to_s == ''
       system "brew install --use-clang --enable-cxx https://github.com/adamv/homebrew-alt/raw/master/duplicates/gcc.rb"
     end
+    #should be we using a makefile, and use homebrews way of setting up compile flags?
     compiler = 'g++-4.6'
     proto = 'DataStructures/pbf-proto'
     stxxl = '/usr/local/Cellar/stxxl/1.3.1'
