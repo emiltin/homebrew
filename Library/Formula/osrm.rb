@@ -5,25 +5,36 @@ class Osrm < Formula
   #md5 '4e2696e0eab9b90ca17fae183061e766'
   head 'https://github.com/DennisOSRM/Project-OSRM', :using => :git
   homepage 'http://project-osrm.org'
-
+  
   depends_on 'stxxl'
   depends_on 'google-sparsehash'
   depends_on 'protobuf'
 
   def install
-    if `which g++-4.6`.to_s == ''
-      system "brew install --use-clang --enable-cxx https://github.com/adamv/homebrew-alt/raw/master/duplicates/gcc.rb"
+    with = :gcc42
+    
+    if with == :gcc46
+      #build gcc 4.6, then use that to build osrm
+      #use OpenMP
+      unless Formula.factory('gcc').installed?
+        system "brew install --use-clang --enable-cxx https://github.com/adamv/homebrew-alt/raw/master/duplicates/gcc.rb"
+      end
+      compiler = 'g++-4.6'
+      opt = '-fopenmp'  #'-O3 -DNDEBUG'
+    else
+      #build osrm with the default gcc 4.2
+      #don't use OpenMP
+      compiler = 'g++'
+      opt = ''
     end
-    #should be we using a makefile, and use homebrews way of setting up compile flags?
-    compiler = 'g++-4.6'
+    
     proto = 'DataStructures/pbf-proto'
     stxxl = '/usr/local/Cellar/stxxl/1.3.1'
     boost = '/usr/local/Cellar/boost/1.47.0'
     xml2 = '/usr/include/libxml2'
     cellar = '/usr/local/Cellar/osrm'
-    opt = '-O3 -DNDEBUG'
     incl = "-I#{stxxl}/include -I#{xml2}"
-    libs = '-fopenmp -lboost_regex-mt -lboost_iostreams-mt -lbz2 -lz -lprotobuf'
+    libs = '-lboost_regex-mt -lboost_iostreams-mt -lbz2 -lz -lprotobuf'
     system "protoc #{proto}/fileformat.proto -I=#{proto} --cpp_out=#{proto}"
     system "protoc #{proto}/osmformat.proto -I=#{proto} --cpp_out=#{proto}"
     system "#{compiler} -c #{proto}/fileformat.pb.cc -o #{proto}/fileformat.pb.o #{opt} -I#{cellar}"
