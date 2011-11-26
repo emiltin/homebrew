@@ -11,7 +11,7 @@ class Osrm < Formula
     head 'https://github.com/DennisOSRM/Project-OSRM', :using => :git
   end
   homepage 'http://project-osrm.org'
-
+  
   depends_on 'google-sparsehash'
   depends_on 'protobuf'
   depends_on 'boost'
@@ -32,21 +32,20 @@ class Osrm < Formula
     end
     
     if ARGV.include? '--latest_gcc'
-      #build gcc 4.6 if not already install, then use that to build osrm. use OpenMP
+      #build gcc 4.6 if not already install
       unless Formula.factory('gcc').installed?
-        system "brew install --use-clang --enable-cxx https://github.com/adamv/homebrew-alt/raw/master/duplicates/gcc.rb"
+        system "brew install --use-clang --enable-cxx https://raw.github.com/adamv/homebrew-alt/master/duplicates/gcc.rb"
       end
-      compiler = 'g++-4.6 '
-      opt = '-fopenmp'  #'-O3 -DNDEBUG'
+      compiler = 'g++-4.6 '           #build with gcc 4.6
+      opt = '-fopenmp -O3 -DNDEBUG'   #use OpenMP
     else
-      #build osrm with the default gcc 4.2. don't use OpenMP
-      compiler = 'g++'
-      opt = ''
+      compiler = 'g++'    #build osrm with the default gcc 4.2.
+      opt = ''            #don't use OpenMP
     end
-    
+        
     proto = 'DataStructures/pbf-proto'
     format = "-losmformat.pb.o -lfileformat.pb.o"
-    stxxl_prefix = Formula.factory('stxxl').prefix
+    stxxl_prefix = Formula.factory('libstxxl').prefix
     boost_prefix = Formula.factory('boost').prefix  
     stxxl = "-I#{stxxl_prefix}/include -L#{stxxl_prefix}/lib -lstxxl "
     boost = "-L#{boost_prefix}/lib -lboost_system-mt -lboost_thread-mt -lboost_regex-mt -lboost_iostreams-mt "
@@ -61,6 +60,7 @@ class Osrm < Formula
     system "#{compiler} -c extractor.cpp -o osrm-extract #{stxxl+xml2+bz+pbf+format} #{opt}"
     system "#{compiler} -c createHierarchy.cpp -o osrm-prepare #{stxxl+xml2} #{opt}"
     system "#{compiler} -c routed.cpp -o osrm-routed #{stxxl+xml2+boost} #{opt}"
+    
     bin.install ['osrm-extract','osrm-prepare','osrm-routed']
   end
 
