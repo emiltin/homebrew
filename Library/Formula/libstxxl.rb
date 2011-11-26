@@ -8,8 +8,12 @@ class Stxxl < Formula
   keg_only "Stxxl is a library of C++ classes and has no binaries."
   
   def install
-    system "make config_gnu"
+    system "make", "config_gnu"
+    inreplace "Makefile" do |s|
+      s.change_make_var! "USE_MACOSX", "yes"
+    end
     system "make library_g++"
-    prefix.install Dir['*']
+    prefix.install Dir['include']
+    prefix.install Dir['lib']
   end
 end
