@@ -20,7 +20,7 @@ class Osrm < Formula
   def options
     [
       ['--latest_gcc', "Build the latest GCC, then use that to build OSRM",
-       '--local', "Fetch from local repo"
+       '--local', "Fetch from local repo",
        '--emil', "Fetch from https://raw.github.com/emiltin"],
     ]
   end
