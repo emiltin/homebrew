@@ -27,8 +27,10 @@ class Osrm < Formula
 
   def install  
     #the stxxl formula isn't yet accepted into the main brew repo, so we install from an alternative repo
-    system "brew install https://raw.github.com/emiltin/homebrew/master/Library/Formula/libstxxl.rb"
-      
+    unless Formula.factory('libstxxl').installed?
+      system "brew install https://raw.github.com/emiltin/homebrew/master/Library/Formula/libstxxl.rb"
+    end
+    
     if ARGV.include? '--latest_gcc'
       #build gcc 4.6 if not already install, then use that to build osrm. use OpenMP
       unless Formula.factory('gcc').installed?
