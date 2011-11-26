@@ -1,6 +1,6 @@
 require 'formula'
 
-class Stxxl < Formula
+class Libstxxl < Formula
   url 'http://sourceforge.net/projects/stxxl/files/stxxl/1.3.1/stxxl-1.3.1.tar.gz'
   homepage 'http://stxxl.sourceforge.net/'
   md5 '8d0e8544c4c830cf9ae81c39b092438c'
