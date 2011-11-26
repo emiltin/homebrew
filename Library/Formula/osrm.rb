@@ -58,8 +58,8 @@ class Osrm < Formula
     system "#{compiler} -c #{proto}/fileformat.pb.cc -o #{proto}/fileformat.pb.o #{opt}"
     system "#{compiler} -c #{proto}/osmformat.pb.cc -o #{proto}/osmformat.pb.o #{opt}"
     system "#{compiler} -o osrm-extract extractor.cpp #{stxxl+xml2+boost+bz+pbf+format} #{opt}"
-    system "#{compiler} -o osrm-prepare createHierarchy.cpp #{stxxl+xml2} #{opt}"
-    system "#{compiler} -o osrm-routed routed.cpp #{stxxl+xml2+boost+bz} #{opt}"
+    system "#{compiler} -o osrm-prepare createHierarchy.cpp Contractor/EdgeBasedGraphFactory.cpp #{stxxl+xml2+boost} #{opt}"
+    system "#{compiler} -o osrm-routed routed.cpp Descriptors/DescriptionFactory.cpp #{stxxl+xml2+boost+bz} #{opt}"
 
     bin.install ['osrm-extract','osrm-prepare','osrm-routed']
   end
