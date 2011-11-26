@@ -44,7 +44,7 @@ class Osrm < Formula
     end
         
     proto = 'DataStructures/pbf-proto'
-    format = "-losmformat.pb.o -lfileformat.pb.o"
+    format = "-L#{proto} -losmformat.pb.o -lfileformat.pb.o"
     stxxl_prefix = Formula.factory('libstxxl').prefix
     boost_prefix = Formula.factory('boost').prefix  
     stxxl = "-I#{stxxl_prefix}/include -L#{stxxl_prefix}/lib -lstxxl "
@@ -57,10 +57,10 @@ class Osrm < Formula
     system "protoc #{proto}/osmformat.proto -I=#{proto} --cpp_out=#{proto}"    
     system "#{compiler} -c #{proto}/fileformat.pb.cc -o #{proto}/fileformat.pb.o #{opt}"
     system "#{compiler} -c #{proto}/osmformat.pb.cc -o #{proto}/osmformat.pb.o #{opt}"
-    system "#{compiler} -c extractor.cpp -o osrm-extract #{stxxl+xml2+bz+pbf+format} #{opt}"
-    system "#{compiler} -c createHierarchy.cpp -o osrm-prepare #{stxxl+xml2} #{opt}"
-    system "#{compiler} -c routed.cpp -o osrm-routed #{stxxl+xml2+boost} #{opt}"
-    
+    system "#{compiler} -o osrm-extract extractor.cpp #{stxxl+xml2+boost+bz+pbf+format} #{opt}"
+    system "#{compiler} -o osrm-prepare createHierarchy.cpp #{stxxl+xml2} #{opt}"
+    system "#{compiler} -o osrm-routed routed.cpp #{stxxl+xml2+boost+bz} #{opt}"
+
     bin.install ['osrm-extract','osrm-prepare','osrm-routed']
   end
 
