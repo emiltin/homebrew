@@ -27,7 +27,7 @@ class Osrm < Formula
 
   def install  
     #the stxxl formula isn't yet accepted into the main brew repo, so we install from an alternative repo
-    system "brew install https://raw.github.com/emiltin/homebrew/master/Library/Formula/stxxl.rb"
+    system "brew install https://raw.github.com/emiltin/homebrew/master/Library/Formula/libstxxl.rb"
       
     if ARGV.include? '--latest_gcc'
       #build gcc 4.6 if not already install, then use that to build osrm. use OpenMP
