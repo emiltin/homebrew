@@ -19,8 +19,7 @@ class Osrm < Formula
 
   def options
     [
-      ['--latest_gcc', "Build the latest GCC, then use that to build OSRM",
-       '--local', "Fetch from local repo",
+      ['--local', "Fetch from local repo",
        '--emil', "Fetch from https://raw.github.com/emiltin"],
     ]
   end
@@ -31,37 +30,8 @@ class Osrm < Formula
       system "brew install https://raw.github.com/emiltin/homebrew/master/Library/Formula/libstxxl.rb"
     end
     
-    if ARGV.include? '--latest_gcc'
-      #build gcc 4.6 if not already install
-      unless Formula.factory('gcc').installed?
-        system "brew install --use-clang --enable-cxx https://raw.github.com/adamv/homebrew-alt/master/duplicates/gcc.rb"
-      end
-      compiler = 'g++-4.6 '           #build with gcc 4.6
-      opt = '-fopenmp -O3 -DNDEBUG'   #use OpenMP
-    else
-      compiler = 'g++'    #build osrm with the default gcc 4.2.
-      opt = ''            #don't use OpenMP
-    end
-        
-    proto = 'DataStructures/pbf-proto'
-    format = "-L#{proto} -losmformat.pb.o -lfileformat.pb.o"
-    stxxl_prefix = Formula.factory('libstxxl').prefix
-    boost_prefix = Formula.factory('boost').prefix  
-    stxxl = "-I#{stxxl_prefix}/include -L#{stxxl_prefix}/lib -lstxxl "
-    boost = "-L#{boost_prefix}/lib -lboost_system-mt -lboost_thread-mt -lboost_regex-mt -lboost_iostreams-mt "
-    xml2 = "-I/usr/include/libxml2 -lxml2 "
-    bz = "-lbz2 -lz "
-    pbf = "-lprotobuf "
-    
-    system "protoc #{proto}/fileformat.proto -I=#{proto} --cpp_out=#{proto}"
-    system "protoc #{proto}/osmformat.proto -I=#{proto} --cpp_out=#{proto}"    
-    system "#{compiler} -c #{proto}/fileformat.pb.cc -o #{proto}/fileformat.pb.o #{opt}"
-    system "#{compiler} -c #{proto}/osmformat.pb.cc -o #{proto}/osmformat.pb.o #{opt}"
-    system "#{compiler} -o osrm-extract extractor.cpp #{stxxl+xml2+boost+bz+pbf+format} #{opt}"
-    system "#{compiler} -o osrm-prepare createHierarchy.cpp Contractor/EdgeBasedGraphFactory.cpp #{stxxl+xml2+boost} #{opt}"
-    system "#{compiler} -o osrm-routed routed.cpp Descriptors/DescriptionFactory.cpp #{stxxl+xml2+boost+bz} #{opt}"
-
-    bin.install ['osrm-extract','osrm-prepare','osrm-routed']
+    system "rake"   #rake will use the Rakefile to build
+    bin.install ['build/osrm-extract','build/osrm-prepare','build/osrm-routed']
   end
 
   def test
