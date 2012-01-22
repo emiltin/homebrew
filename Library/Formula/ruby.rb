@@ -41,9 +41,7 @@ class Ruby < Formula
 
     system "autoconf" unless File.exists? 'configure'
 
-    # Configure claims that "--with-readline-dir" is unused, but it works.
     args = ["--prefix=#{prefix}",
-            "--with-readline-dir=#{Formula.factory('readline').prefix}",
             "--disable-debug",
             "--disable-dependency-tracking",
             "--enable-shared"]
@@ -70,10 +68,6 @@ class Ruby < Formula
   end
 
   def caveats; <<-EOS.undent
-    Consider using RVM or Cinderella to manage Ruby environments:
-      * RVM: http://rvm.beginrescueend.com/
-      * Cinderella: http://www.atmos.org/cinderella/
-
     NOTE: By default, gem installed binaries will be placed into:
       #{bin}
 
