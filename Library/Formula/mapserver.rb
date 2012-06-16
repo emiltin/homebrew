@@ -1,9 +1,9 @@
 require 'formula'
 
 class Mapserver < Formula
-  url 'http://download.osgeo.org/mapserver/mapserver-6.0.1.tar.gz'
   homepage 'http://mapserver.org/'
-  md5 'b96287449dcbca9a2fcea3a64905915a'
+  url 'http://download.osgeo.org/mapserver/mapserver-6.0.2.tar.gz'
+  md5 'd831c905b1b0df7ac09a80c3f9387374'
 
   depends_on 'gd'
   depends_on 'proj'
@@ -11,9 +11,11 @@ class Mapserver < Formula
 
   depends_on 'geos' if ARGV.include? '--with-geos'
   depends_on 'postgresql' if ARGV.include? '--with-postgresql' and not MacOS.lion?
+  depends_on 'fcgi' if ARGV.include? '--with-fastcgi'
 
   def options
     [
+      ["--with-fastcgi", "Build with fastcgi support"],
       ["--with-geos", "Build support for GEOS spatial operations"],
       ["--with-php", "Build PHP MapScript module"],
       ["--with-postgresql", "Build support for PostgreSQL as a data source"]
@@ -40,14 +42,26 @@ class Mapserver < Formula
       end
     end
 
+    if ARGV.include? '--with-fastcgi'
+      args.push "--with-fastcgi=#{HOMEBREW_PREFIX}"
+    end
+
     args
+  end
+
+  def patches
+    # Fix clang compilation issue, remove on future release
+    # See http://trac.osgeo.org/mapserver/changeset/12809
+    DATA
   end
 
   def install
     ENV.x11
     system "./configure", *configure_args
     system "make"
-    bin.install %w(mapserv)
+    bin.install %w(mapserv shp2img legend shptree shptreevis
+        shptreetst scalebar sortshp mapscriptvars tile4ms
+        msencrypt mapserver-config)
 
     if ARGV.include? '--with-php'
       prefix.install %w(mapscript/php/php_mapscript.so)
@@ -65,3 +79,17 @@ class Mapserver < Formula
     EOS
   end
 end
+
+__END__
+diff --git a/renderers/agg/include/agg_renderer_outline_aa.h b/renderers/agg/include/agg_renderer_outline_aa.h
+index 5ff3f20..7a14588 100644
+--- a/renderers/agg/include/agg_renderer_outline_aa.h
++++ b/renderers/agg/include/agg_renderer_outline_aa.h
+@@ -1365,7 +1365,6 @@ namespace mapserver
+         //---------------------------------------------------------------------
+         void profile(const line_profile_aa& prof) { m_profile = &prof; }
+         const line_profile_aa& profile() const { return *m_profile; }
+-        line_profile_aa& profile() { return *m_profile; }
+
+         //---------------------------------------------------------------------
+         int subpixel_width() const { return m_profile->subpixel_width(); }

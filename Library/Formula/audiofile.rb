@@ -1,13 +1,11 @@
 require 'formula'
 
 class Audiofile < Formula
-  url 'https://github.com/downloads/mpruett/audiofile/audiofile-0.3.2.tar.gz'
-  sha1 'fb55a3c9153475daa8932d3626797e033d149c1d'
   homepage 'http://www.68k.org/~michael/audiofile/'
+  url 'https://github.com/downloads/mpruett/audiofile/audiofile-0.3.4.tar.gz'
+  sha1 'e6f664b0d551df35ce0c10e38e5617bcd4605335'
 
   depends_on 'lcov' if ARGV.include? '--with-lcov'
-
-# Builds with all 3 compilers. Cheers Clang!
 
   def options
     [
@@ -28,38 +26,30 @@ class Audiofile < Formula
   def test
     inn  = '/System/Library/Sounds/Glass.aiff'
     out  = 'Glass.wav'
-    hear = '/usr/bin/qlmanage'
-    conv = "#{HOMEBREW_PREFIX}/bin/sfconvert"
-    info = "#{HOMEBREW_PREFIX}/bin/sfinfo"
+    hear_bin = '/usr/bin/qlmanage'
+    conv_bin = "#{bin}/sfconvert"
+    info_bin = "#{bin}/sfinfo"
 
-    puts ''
-    if File.exist?("#{conv}") and File.exist?("#{inn}") and
-       File.exist?("#{hear}") and File.exist?("#{info}")
-      mktemp do
-        system "#{conv} #{inn} #{out} format wave"
-        system "#{info} --short --reporterror #{out}"
-        system "#{hear} -p #{out}" if ARGV.verbose?
-        puts ''
-        oh1 <<-EOS.undent
-          Cheers mate. You converted a system sound from the Audio
-          Interchange File Format \"aiff\" to the MS RIFF Wave format.
-
-        EOS
-      end
-    else
+    unless File.exist?(conv_bin) and File.exist?(inn) and
+          File.exist?(hear_bin) and File.exist?(info_bin)
       opoo <<-EOS.undent
-        The test program couldn't locate one of these files that normally exist:
+        One of the following files could not be located, and so
+        the test was not executed:
            #{inn}
-           #{conv}
-           #{info}
-           #{hear}
-        We are sorry for the mistake.  Another test you can run on this software
-        will occur during install if you add --with-check like this:
+           #{conv_bin}
+           #{info_bin}
+           #{hear_bin}
 
+        Audiofile can also be tested at build-time:
+          brew install -v audiofile --with-check
       EOS
-      oh1 '    brew rm audiofile'
-      oh1 '    brew -v install audiofile --with-check'
-      puts ''
-    end  # if-else
-  end  # def test
+      return
+    end
+
+    mktemp do
+      system conv_bin, inn, out, 'format', 'wave'
+      system info_bin, '--short', '--reporterror', out
+      system hear_bin, '-p', out if ARGV.verbose?
+    end
+  end
 end

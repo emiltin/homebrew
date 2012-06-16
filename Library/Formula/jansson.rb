@@ -1,11 +1,16 @@
 require 'formula'
 
 class Jansson < Formula
-  url 'http://www.digip.org/jansson/releases/jansson-2.1.tar.gz'
   homepage 'http://www.digip.org/jansson/'
-  md5 '9d9cff669b79cecc60d68141afd74e9d'
+  url 'http://www.digip.org/jansson/releases/jansson-2.3.1.tar.bz2'
+  sha1 'af7497d930423088fa6d0699d84740fffa0c98df'
+
+  def options
+    [["--universal", "Build a universal binary."]]
+  end
 
   def install
+    ENV.universal_binary if ARGV.build_universal?
     system "./configure", "--disable-dependency-tracking",
                           "--prefix=#{prefix}"
     system "make install"

@@ -9,15 +9,21 @@ def as_framework?
 end
 
 class Distribute < Formula
-  url 'http://pypi.python.org/packages/source/d/distribute/distribute-0.6.24.tar.gz'
-  md5 '17722b22141aba8235787f79800cc452'
+  url 'http://pypi.python.org/packages/source/d/distribute/distribute-0.6.27.tar.gz'
+  md5 'ecd75ea629fee6d59d26f88c39b2d291'
 end
 
-class Python < Formula
-  url 'http://www.python.org/ftp/python/2.7.2/Python-2.7.2.tar.bz2'
-  homepage 'http://www.python.org/'
-  md5 'ba7b2f11ffdbf195ee0d111b9455a5bd'
+ class Pip < Formula
+   url 'http://pypi.python.org/packages/source/p/pip/pip-1.1.tar.gz'
+   md5 '62a9f08dd5dc69d76734568a6c040508'
+ end
 
+class Python < Formula
+  homepage 'http://www.python.org/'
+  url 'http://www.python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2'
+  md5 'c57477edd6d18bd9eeca2f21add73919'
+
+  depends_on 'pkg-config' => :build
   depends_on 'readline' => :optional # Prefer over OS X's libedit
   depends_on 'sqlite'   => :optional # Prefer over OS X's older version
   depends_on 'gdbm'     => :optional
@@ -30,16 +36,16 @@ class Python < Formula
     ]
   end
 
-  def patches
-    # fix for recognizing gdbm 1.9.x databases
-    # patch is already upstream: http://hg.python.org/cpython/rev/14cafb8d1480
-    DATA
-  end
-
   # Skip binaries so modules will load; skip lib because it is mostly Python files
   skip_clean ['bin', 'lib']
 
   def install
+    # Python requires -fwrapv for proper Decimal division with Clang. See:
+    # https://github.com/mxcl/homebrew/pull/10487
+    # http://stackoverflow.com/questions/7590137/dividing-decimals-yields-invalid-results-in-python-2-5-to-2-7
+    # https://trac.macports.org/changeset/87442
+    ENV.append_to_cflags "-fwrapv"
+
     if build_framework? and ARGV.include? "--static"
       onoe "Cannot specify both framework and static."
       exit 99
@@ -98,11 +104,9 @@ class Python < Formula
       install-scripts=#{scripts_folder}
     EOF
 
-    # Install distribute. The user can then do:
-    # $ easy_install pip
-    # $ pip install --upgrade distribute
-    # to get newer versions of distribute outside of Homebrew.
+    # Install distribute and pip
     Distribute.new.brew { system "#{bin}/python", "setup.py", "install" }
+    Pip.new.brew { system "#{bin}/python", "setup.py", "install" }
   end
 
   def caveats
@@ -111,10 +115,12 @@ class Python < Formula
       Framework Python was installed to:
         #{prefix}/Frameworks/Python.framework
 
-      You may want to symlink this Framework to a standard OS X location,
-      such as:
-          mkdir ~/Frameworks
-          ln -s "#{prefix}/Frameworks/Python.framework" ~/Frameworks
+      You may want to symlink this Framework to a standard OS X location:
+        mkdir -p ~/Library/Frameworks/Python.framework/Versions
+        ln -s "#{prefix}/Frameworks/Python.framework/Versions/2.7" ~/Library/Frameworks/Python.framework/Versions/2.7
+        ln -s ~/Library/Frameworks/Python.framework/Versions/2.7 ~/Library/Frameworks/Python.framework/Versions/Current
+        ln -s ~/Library/Frameworks/Python.framework/Versions/2.7/Python ~/Library/Frameworks/Python.framework/Python
+        ln -s ~/Library/Frameworks/Python.framework/Versions/2.7/Resources ~/Library/Frameworks/Python.framework/Resources
     EOS
 
     general_caveats = <<-EOS.undent
@@ -123,13 +129,11 @@ class Python < Formula
       specifing the install-scripts folder as:
         #{scripts_folder}
 
-      If you install Python packages via "python setup.py install", easy_install, pip,
-      any provided scripts will go into the install-scripts folder above, so you may
-      want to add it to your PATH.
+      If you install Python packages via "pip install x" or "python setup.py install"
+      (or the outdated easy_install), any provided scripts will go into the
+      install-scripts folder above, so you may want to add it to your PATH.
 
-      Distribute has been installed, so easy_install is available.
-      To update distribute itself outside of Homebrew:
-          #{scripts_folder}/easy_install pip
+      Distribute has been installed. To update distribute itself outside of Homebrew:
           #{scripts_folder}/pip install --upgrade distribute
 
       See: https://github.com/mxcl/homebrew/wiki/Homebrew-and-Python
@@ -148,6 +152,14 @@ class Python < Formula
     return lib
   end
 
+  # include folder,taking into account whether we are a Framework build or not
+  def effective_include
+    # If we're installed or installing as a Framework, then use that location.
+    return prefix+"Frameworks/Python.framework/Versions/2.7/include" if as_framework?
+    # Otherwise use just 'include'
+    return include
+  end
+
   # The Cellar location of site-packages
   def site_packages
     effective_lib+"python2.7/site-packages"
@@ -162,16 +174,9 @@ class Python < Formula
   def scripts_folder
     HOMEBREW_PREFIX+"share/python"
   end
-end
 
-__END__
-diff --git a/Lib/whichdb.py b/Lib/whichdb.py
---- a/Lib/whichdb.py
-+++ b/Lib/whichdb.py
-@@ -91,7 +91,7 @@ def whichdb(filename):
-         return ""
- 
-     # Check for GNU dbm
--    if magic == 0x13579ace:
-+    if magic in (0x13579ace, 0x13579acd, 0x13579acf):
-         return "gdbm"
+  def test
+    # See: https://github.com/mxcl/homebrew/pull/10487
+    `#{bin}/python -c 'from decimal import Decimal; print Decimal(4) / Decimal(2)'`.chomp == '2'
+  end
+end

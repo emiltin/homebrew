@@ -2,14 +2,17 @@ require 'formula'
 
 class Mysql < Formula
   homepage 'http://dev.mysql.com/doc/refman/5.5/en/'
-  url 'http://downloads.mysql.com/archives/mysql-5.5/mysql-5.5.19.tar.gz'
-  md5 'a78cf450974e9202bd43674860349b5a'
+  url 'http://downloads.mysql.com/archives/mysql-5.5/mysql-5.5.25.tar.gz'
+  md5 '9e2a3d5b41eac7fae41b93e5b71ea49c'
 
   depends_on 'cmake' => :build
   depends_on 'readline'
   depends_on 'pidof'
 
-  fails_with_llvm "https://github.com/mxcl/homebrew/issues/issue/144", :build => 2326
+  fails_with :llvm do
+    build 2326
+    cause "https://github.com/mxcl/homebrew/issues/issue/144"
+  end
 
   skip_clean :all # So "INSTALL PLUGIN" can work.
 
@@ -18,17 +21,19 @@ class Mysql < Formula
       ['--with-tests', "Build with unit tests."],
       ['--with-embedded', "Build the embedded server."],
       ['--with-libedit', "Compile with EditLine wrapper instead of readline"],
+      ['--with-archive-storage-engine', "Compile with the ARCHIVE storage engine enabled"],
+      ['--with-blackhole-storage-engine', "Compile with the BLACKHOLE storage engine enabled"],
       ['--universal', "Make mysql a universal binary"],
       ['--enable-local-infile', "Build with local infile loading support"]
     ]
   end
 
-  def patches
-    DATA
-  end
+  # Remove optimization flags from `mysql_config --cflags`
+  # This facilitates easy compilation of gems using a brewed mysql
+  def patches; DATA; end
 
   def install
-    # Make sure the var/msql directory exists
+    # Make sure the var/mysql directory exists
     (var+"mysql").mkpath
 
     args = [".",
@@ -57,6 +62,12 @@ class Mysql < Formula
     # Compile with readline unless libedit is explicitly chosen
     args << "-DWITH_READLINE=yes" unless ARGV.include? '--with-libedit'
 
+    # Compile with ARCHIVE engine enabled if chosen
+    args << "-DWITH_ARCHIVE_STORAGE_ENGINE=1" if ARGV.include? '--with-archive-storage-engine'
+
+    # Compile with BLACKHOLE engine enabled if chosen
+    args << "-DWITH_BLACKHOLE_STORAGE_ENGINE=1" if ARGV.include? '--with-blackhole-storage-engine'
+
     # Make universal for binding to universal applications
     args << "-DCMAKE_OSX_ARCHITECTURES='i386;x86_64'" if ARGV.build_universal?
 
@@ -67,8 +78,8 @@ class Mysql < Formula
     system "make"
     system "make install"
 
-    (prefix+'com.mysql.mysqld.plist').write startup_plist
-    (prefix+'com.mysql.mysqld.plist').chmod 0644
+    plist_path.write startup_plist
+    plist_path.chmod 0644
 
     # Don't create databases inside of the prefix!
     # See: https://github.com/mxcl/homebrew/issues/4975
@@ -113,13 +124,13 @@ class Mysql < Formula
     To launch on startup:
     * if this is your first install:
         mkdir -p ~/Library/LaunchAgents
-        cp #{prefix}/com.mysql.mysqld.plist ~/Library/LaunchAgents/
-        launchctl load -w ~/Library/LaunchAgents/com.mysql.mysqld.plist
+        cp #{plist_path} ~/Library/LaunchAgents/
+        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
 
-    * if this is an upgrade and you already have the com.mysql.mysqld.plist loaded:
-        launchctl unload -w ~/Library/LaunchAgents/com.mysql.mysqld.plist
-        cp #{prefix}/com.mysql.mysqld.plist ~/Library/LaunchAgents/
-        launchctl load -w ~/Library/LaunchAgents/com.mysql.mysqld.plist
+    * if this is an upgrade and you already have the #{plist_path.basename} loaded:
+        launchctl unload -w ~/Library/LaunchAgents/#{plist_path.basename}
+        cp #{plist_path} ~/Library/LaunchAgents/
+        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
 
     You may also need to edit the plist to use the correct "UserName".
 
@@ -134,9 +145,9 @@ class Mysql < Formula
       <key>KeepAlive</key>
       <true/>
       <key>Label</key>
-      <string>com.mysql.mysqld</string>
+      <string>#{plist_name}</string>
       <key>Program</key>
-      <string>#{bin}/mysqld_safe</string>
+      <string>#{HOMEBREW_PREFIX}/bin/mysqld_safe</string>
       <key>RunAtLoad</key>
       <true/>
       <key>UserName</key>
@@ -151,30 +162,18 @@ end
 
 
 __END__
-diff --git a/scripts/mysqld_safe.sh b/scripts/mysqld_safe.sh
-index 0d2045a..2fdd5ce 100644
---- a/scripts/mysqld_safe.sh
-+++ b/scripts/mysqld_safe.sh
-@@ -558,7 +558,7 @@ else
- fi
- 
- USER_OPTION=""
--if test -w / -o "$USER" = "root"
-+if test -w /sbin -o "$USER" = "root"
- then
-   if test "$user" != "root" -o $SET_USER = 1
-   then
 diff --git a/scripts/mysql_config.sh b/scripts/mysql_config.sh
-index 9296075..a600de2 100644
+index 9296075..70c18db 100644
 --- a/scripts/mysql_config.sh
 +++ b/scripts/mysql_config.sh
-@@ -137,7 +137,8 @@ for remove in DDBUG_OFF DSAFE_MUTEX DUNIV_MUST_NOT_INLINE DFORCE_INIT_OF_VARS \
+@@ -137,7 +137,9 @@ for remove in DDBUG_OFF DSAFE_MUTEX DUNIV_MUST_NOT_INLINE DFORCE_INIT_OF_VARS \
                DEXTRA_DEBUG DHAVE_purify O 'O[0-9]' 'xO[0-9]' 'W[-A-Za-z]*' \
                'mtune=[-A-Za-z0-9]*' 'mcpu=[-A-Za-z0-9]*' 'march=[-A-Za-z0-9]*' \
                Xa xstrconst "xc99=none" AC99 \
 -              unroll2 ip mp restrict
 +              unroll2 ip mp restrict \
-+              mmmx 'msse[0-9.]*' 'mfpmath=sse' w pipe 'fomit-frame-pointer' 'mmacosx-version-min=10.[0-9]'
++              mmmx 'msse[0-9.]*' 'mfpmath=sse' w pipe 'fomit-frame-pointer' 'mmacosx-version-min=10.[0-9]' \
++              aes Os
  do
    # The first option we might strip will always have a space before it because
    # we set -I$pkgincludedir as the first option
